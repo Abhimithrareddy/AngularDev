@@ -8,5 +8,11 @@ import { Component } from '@angular/core';
 export class AppComponent {
   listExampleArray = [{name: 'ABhi', id: 1}];
 
+ loadedFeature = 'recipe';
+
+onNavigate(feature: string) {
+  this.loadedFeature = feature;
+}
+
 
 }
