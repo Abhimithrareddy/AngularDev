@@ -32,6 +32,10 @@ private  recipes: Recipe[] = [new
     return this.recipes.slice();
   }
 
+  getRecipe(index: number) {
+    console.log(this.recipes,'recipes')
+    return this.recipes[index];
+  }
   constructor(private slService: ShoppingListService){}
 
   addIngredientsToShoppingList(ingredients: Ingredient[]) {
