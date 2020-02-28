@@ -1,7 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpResponse, HttpErrorResponse } from '@angular/common/http';
-import { catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
+import { catchError, tap } from 'rxjs/operators';
+import { throwError, BehaviorSubject } from 'rxjs';
+import { User } from './user.model';
+import { removeSummaryDuplicates } from '@angular/compiler';
 export interface AuthResposnseData {
   kind: string;
   idToken: string;
@@ -17,6 +19,8 @@ export interface AuthResposnseData {
 })
 export class AuthService {
 
+  user = new BehaviorSubject<User>(null);
+
   constructor(private http: HttpClient ) {}
 
   signUp(emailRec: string, passwordRec: string) {
@@ -28,7 +32,9 @@ export class AuthService {
           returnSecureToken: true
         }
       )
-      .pipe(catchError(this.handleError));
+      .pipe(catchError(this.handleError), tap(resData => {
+          this.handleAuthentication(resData.email, resData.localId, resData.idToken, +resData.expiresIn);
+      }));
 
   }
 
@@ -36,14 +42,30 @@ export class AuthService {
 
 login(emailRec: string, passwordRec: string) {
  return this.http
+ // tslint:disable-next-line: max-line-length
  .post<AuthResposnseData>('https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyBi30mzoNdHQuDamWExk3btfM8W6pZhpxk',
   {
     email: emailRec,
     password: passwordRec,
     returnSecureToken: true
   }
-  ).pipe(catchError(this.handleError));
+  ).pipe(catchError(this.handleError), tap(resData => {
+    this.handleAuthentication(resData.email, resData.localId, resData.idToken, +resData.expiresIn);
+  }));
 }
+
+private handleAuthentication(email: string, userId: string, token: string, expiresIn: number ) {
+
+  const expirationDate = new Date(new Date().getTime() + expiresIn * 1000);
+  const user = new User(
+          email,
+          userId,
+          token,
+          expirationDate
+        );
+  this.user.next(user);
+}
+
 
 private handleError(errorRes: HttpErrorResponse) {
   let errorMessage = 'An unkown error occured!';
@@ -72,6 +94,10 @@ private handleError(errorRes: HttpErrorResponse) {
   }
   return throwError(errorMessage);
 
+}
+
+logOut() {
+  this.user.next(null);
 }
 
 }
